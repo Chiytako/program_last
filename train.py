@@ -3,6 +3,10 @@ import torch
 from torchvision import datasets
 from torchvision.transforms import v2 as transforms
 import models
+import time
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 
 ds_transform = transforms.Compose([
     transforms.ToImage(),
@@ -24,7 +28,6 @@ ds_test = datasets.FashionMNIST(
 )
 
 batch_size = 64
-
 dataloader_train = torch.utils.data.DataLoader(
     ds_train,
     batch_size=batch_size,
@@ -35,10 +38,9 @@ dataloader_test = torch.utils.data.DataLoader(
     batch_size=batch_size
 )
 
-model = models.MyModel()
+model = models.MyModel().to(device)
 
 loss_fn = torch.nn.CrossEntropyLoss()
-
 learning_rate = 1e-3
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
@@ -50,22 +52,24 @@ train_acc_log = []
 val_acc_log = []
 
 for epoch in range(n_epochs):
+    start_time = time.time()
     print(f'epoch {epoch+1}/{n_epochs}')
     
-    train_loss = models.train(model, dataloader_train, loss_fn, optimizer)
+    train_loss = models.train(model, dataloader_train, loss_fn, optimizer, device)
     train_loss_log.append(train_loss)
     
-    val_loss = models.test(model, dataloader_test, loss_fn)
+    val_loss = models.test(model, dataloader_test, loss_fn, device)
     val_loss_log.append(val_loss)
     
-    train_acc = models.test_accuracy(model, dataloader_train)
+    train_acc = models.test_accuracy(model, dataloader_train, device)
     train_acc_log.append(train_acc)
-
-    val_acc = models.test_accuracy(model, dataloader_test)
+    val_acc = models.test_accuracy(model, dataloader_test, device)
     val_acc_log.append(val_acc)
     
+    end_time = time.time()
     print(f'  train loss: {train_loss:.4f}, val loss: {val_loss:.4f}')
     print(f'  train acc:  {train_acc*100:.3f}%, val acc:  {val_acc*100:.3f}%')
+    print(f'  time: {end_time - start_time:.2f} sec')
 
 plt.figure(figsize=(12, 5))
 
